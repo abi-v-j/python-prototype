@@ -1,5 +1,5 @@
 from rest_framework import serializers
-
+from .models import Item
 
 class AddNumbersSerializer(serializers.Serializer):
     n1 = serializers.FloatField(required=True, error_messages={"required": "Please provide 'n1'."})
@@ -18,19 +18,15 @@ class AddNumbersSerializer(serializers.Serializer):
         }
 
 
-class AddItemSerializer(serializers.Serializer):
-    item_code = serializers.CharField(required=True, error_messages={"required": "Please provide 'item_code'."})
-    item_name = serializers.CharField(required=True, error_messages={"required": "Please provide 'item_name'."})
-    unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=True, error_messages={"required": "Please provide 'unit_price'."})
-
-    def validate(self, attrs):
-        item_code = attrs["item_code"]
-        item_name = attrs["item_name"]
-        unit_price = attrs["unit_price"]
-
-        return {
-            "item_code": item_code,
-            "item_name": item_name,
-            "unit_price": unit_price,
-        }
-       
+class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = [
+            "item_id",
+            "item_code",
+            "item_name",
+            "uom",
+            "unit_price",
+            "is_active",
+            "created_at",
+        ]
