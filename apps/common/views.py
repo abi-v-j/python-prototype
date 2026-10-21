@@ -3,6 +3,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import AddNumbersSerializer, ItemSerializer
 from .models import Item
+from django.db.models import ProtectedError
+
 
 
 @api_view(["GET"])
@@ -82,3 +84,78 @@ def insert_item_orm(request):
         serializer = ItemSerializer(items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+
+@api_view(["GET", "PUT", "PATCH", "POST"])
+def update_item_orm(request, pk):
+   
+    try:
+        item = Item.objects.get(item_id=pk)
+    except Item.DoesNotExist:
+        return Response(
+            {"error": f"Item with id {pk} not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == "GET":
+        serializer = ItemSerializer(item)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    partial = (request.method != "PUT")
+    return _handle_update_item(item, request.data, partial=partial)
+
+
+
+def _handle_update_item(item, data, partial=False):
+   
+    serializer = ItemSerializer(item, data=data, partial=partial)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    updated_item = serializer.save()
+
+    return Response(
+        {
+            "status": "success",
+            "message": "Item updated successfully using Django ORM (.save())",
+            "data": ItemSerializer(updated_item).data,
+        },
+        status=status.HTTP_200_OK,
+    )
+
+
+    
+@api_view(["POST", "DELETE"])
+def delete_item_orm(request, pk):
+   
+    try:
+        item = Item.objects.get(item_id=pk)
+    except Item.DoesNotExist:
+        return Response(
+            {"error": f"Item with id {pk} not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return _handle_delete(row=item)
+
+
+
+def _handle_delete(row):
+   
+    try:
+      
+        row.delete()
+
+        return Response(
+            {
+                "status": "success",
+                "message": f"Item '{item_code}' (id: {item_id}) deleted successfully using Django ORM (.delete())",
+            },
+            status=status.HTTP_200_OK,
+        )
+    except ProtectedError:
+        return Response(
+            {
+                "error": f"Cannot delete item '{item.item_code}' because it is referenced by existing orders."
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
